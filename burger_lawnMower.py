@@ -17,6 +17,7 @@ from tf.transformations import euler_from_quaternion
 
 
 class Turtlebot_Mover:
+
     def __init__(self):
         self.x_pos=0
         self.y_pos=0
@@ -25,6 +26,7 @@ class Turtlebot_Mover:
         self.move_cmd = Twist()
         self.tf_listener = tf.TransformListener()
         self.odom_frame = 'odom'
+        self.r=rospy.Rate(10)
 
         try:
             self.tf_listener.waitForTransform(self.odom_frame, 'base_footprint', rospy.Time(), rospy.Duration(1.0))
@@ -36,6 +38,8 @@ class Turtlebot_Mover:
             except (tf.Exception, tf.ConnectivityException, tf.LookupException):
                 rospy.loginfo("Cannot find transform between odom and base_link or base_footprint")
                 rospy.signal_shutdown("tf Exception")
+
+
 
     def pos_callback(self,msg):
         #rospy.loginfo(rospy.get_caller_id())
@@ -59,20 +63,106 @@ class Turtlebot_Mover:
         #while not rospy.is_shutdown():
         rospy.Subscriber("tf", TFMessage, self.pos_callback)
 
+
     def move_x(self):
-        distance = 1.8
+
+        #Moving along the X-Axis direction
+        distance = 1.2
+        turn=1
         (position, rotation) = self.get_odom()
-        goal_x = position.x + distance
-        goal_y = position.y + distance
+        original_y_pos = position.y
+        final_y = 0
 
-        while distance > 0.02:
+        while (original_y_pos + distance > final_y):
+
+            #Moving along the X-axis
             (position, rotation) = self.get_odom()
-            distance = sqrt(pow((goal_x - position.x), 2) + pow((goal_y - position.y), 2))
-            self.move_cmd.linear.x = min(1 * distance, 0.1)
-            self.cmd_vel.publish(self.move_cmd)
+            goal_x = position.x + distance*turn
+            while distance > 0.02:
+                (position, rotation) = self.get_odom()
+                #print(position.x, ",", position.y)
+
+                distance = sqrt(pow((goal_x - position.x), 2))
+
+                #print(distance)
+                self.move_cmd.linear.x = min(1 * distance, 0.1)
+                self.cmd_vel.publish(self.move_cmd)
+                self.r.sleep()
+                #Path angle has been ignored for now. Motion only in straight line.
+            print("X-axis motion done")
 
 
-        print("Moved to the end of grid. Now to rotate")
+            #Rotating 90 degrees
+            (position, rotation) = self.get_odom()
+            goal_z = 90 * turn
+            goal_z = np.deg2rad(goal_z)
+            while abs(rotation - goal_z) >0.05:
+                print("rotation = ", rotation)
+                print("goal_z = ", goal_z)
+                if goal_z >= 0:
+                    if rotation <= goal_z and rotation >= goal_z - pi:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = 0.5
+                    else:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = -0.5
+                else:
+                    if rotation <= goal_z + pi and rotation > goal_z:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = -0.5
+                    else:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = 0.5
+                self.cmd_vel.publish(self.move_cmd)
+                self.r.sleep()
+
+            print("rotation done")
+            self.cmd_vel.publish(Twist())
+
+            #Moving along the Y-axis
+            (position, rotation) = self.get_odom()
+            goal_y = position.y + distance/10
+            while distance > 0.02:
+                (position, rotation) = self.get_odom()
+                #print(position.x, ",", position.y)
+
+                distance = sqrt(pow((goal_y - position.y), 2))
+
+                #print(distance)
+                self.move_cmd.linear.x = min(1 * distance, 0.1)
+                self.cmd_vel.publish(self.move_cmd)
+                self.r.sleep()
+                #Path angle has been ignored for now. Motion only in straight line.
+            print("Y-axis motion done")
+            self.cmd_vel.publish(Twist())
+
+            # Rotating 90 degrees second time
+            (position, rotation) = self.get_odom()
+            while abs(rotation - 90 * turn):
+                (position, rotation) = self.get_odom()
+                if rotation <= 90 + pi and rotation > 90:
+                    self.move_cmd.angluar.z = -0.5
+                else:
+                    self.move_cmd.angular.z = 0.5
+
+                self.cmd_vel.publish(self.move_cmd)
+                self.r.sleep()
+            print("second rotation done")
+            self.cmd_vel.publish(Twist())
+
+            #Do this for flipping the X-axis motion and Angle of rotation on alternate movement
+            turn *= -1
+            (position, rotation) = self.get_odom()
+            final_y = position.y
+
+
+
+        #for Stopping the current motion.
+        self.cmd_vel.publish(Twist())
+
+
+
+
         #rospy.signal_shutdown("Initial Pos extracted")
 
 
