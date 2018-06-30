@@ -66,15 +66,26 @@ class Turtlebot_Mover:
 
     def move_x(self):
 
+
+        #Reset Velocities
+        self.move_cmd.linear.x = 0.0
+        self.move_cmd.angular.z = 0.0
+        self.cmd_vel.publish(self.move_cmd)
+
+
         #Moving along the X-Axis direction
-        distance = 1.2
+        distance_X = 1.2
+        distance_Y = 0.4
         turn=1
+        angle=180
         (position, rotation) = self.get_odom()
         original_y_pos = position.y
         final_y = 0
+        iteration=0
 
-        while (original_y_pos + distance > final_y):
+        while (original_y_pos + distance_X > final_y):
 
+            distance = distance_X
             #Moving along the X-axis
             (position, rotation) = self.get_odom()
             goal_x = position.x + distance*turn
@@ -86,19 +97,21 @@ class Turtlebot_Mover:
 
                 #print(distance)
                 self.move_cmd.linear.x = min(1 * distance, 0.1)
+                self.move_cmd.angular.z = 0.0
                 self.cmd_vel.publish(self.move_cmd)
                 self.r.sleep()
                 #Path angle has been ignored for now. Motion only in straight line.
             print("X-axis motion done")
-
+            self.cmd_vel.publish(Twist())
 
             #Rotating 90 degrees
             (position, rotation) = self.get_odom()
-            goal_z = 90 * turn
+            goal_z = 90
             goal_z = np.deg2rad(goal_z)
             while abs(rotation - goal_z) >0.05:
-                print("rotation = ", rotation)
-                print("goal_z = ", goal_z)
+                (position, rotation) = self.get_odom()
+                #print("rotation = ", rotation)
+                #print("goal_z = ", goal_z)
                 if goal_z >= 0:
                     if rotation <= goal_z and rotation >= goal_z - pi:
                         self.move_cmd.linear.x = 0.00
@@ -116,44 +129,75 @@ class Turtlebot_Mover:
                 self.cmd_vel.publish(self.move_cmd)
                 self.r.sleep()
 
-            print("rotation done")
+            print(" 1st rotation done")
             self.cmd_vel.publish(Twist())
+
+            #age = input("Starting Y movement")
 
             #Moving along the Y-axis
             (position, rotation) = self.get_odom()
-            goal_y = position.y + distance/10
+            distance = distance_Y
+            goal_y = position.y + distance
+
             while distance > 0.02:
                 (position, rotation) = self.get_odom()
                 #print(position.x, ",", position.y)
-
+                #age = input("Press Enter")
                 distance = sqrt(pow((goal_y - position.y), 2))
 
                 #print(distance)
                 self.move_cmd.linear.x = min(1 * distance, 0.1)
+                self.move_cmd.angular.z = 0.0
                 self.cmd_vel.publish(self.move_cmd)
                 self.r.sleep()
                 #Path angle has been ignored for now. Motion only in straight line.
             print("Y-axis motion done")
             self.cmd_vel.publish(Twist())
 
-            # Rotating 90 degrees second time
-            (position, rotation) = self.get_odom()
-            while abs(rotation - 90 * turn):
-                (position, rotation) = self.get_odom()
-                if rotation <= 90 + pi and rotation > 90:
-                    self.move_cmd.angluar.z = -0.5
-                else:
-                    self.move_cmd.angular.z = 0.5
+            #age = input("Starting 2nd rotation")
 
+            (position, rotation) = self.get_odom()
+            goal_z = angle
+            goal_z = np.deg2rad(goal_z)
+
+
+            while abs(rotation - goal_z) >0.05:
+                (position, rotation) = self.get_odom()
+                #print("rotation = ", rotation)
+                #print("goal_z = ", goal_z)
+                if goal_z >= 0:
+                    if rotation <= goal_z and rotation >= goal_z - pi:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = 0.5
+                    else:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = -0.5
+                else:
+                    if rotation <= goal_z + pi and rotation > goal_z:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = -0.5
+                    else:
+                        self.move_cmd.linear.x = 0.00
+                        self.move_cmd.angular.z = 0.5
                 self.cmd_vel.publish(self.move_cmd)
                 self.r.sleep()
-            print("second rotation done")
+
+            print(" 2nd rotation done")
             self.cmd_vel.publish(Twist())
 
             #Do this for flipping the X-axis motion and Angle of rotation on alternate movement
             turn *= -1
+            if turn == 1:
+                angle = 180
+            else:
+                angle = 0
+
             (position, rotation) = self.get_odom()
             final_y = position.y
+
+            age = input("Starting next Iteration")
+            iteration+=1
+            print("============================ ", iteration, "===============")
 
 
 
