@@ -1,3 +1,3 @@
-Sample code for the following pipeline
+## [](#header-1)Sample Pipeline workflow
 
-Load/publish data from pcd file to a topic  -> subscribe to topic and perform downsampling -> re-publish the output to another topic
+!["Workflow"](https://github.com/jadhavhninad/RosCodeRepo/blob/master/pcl_tests2/assets/pcl_test2_workflow.png)
